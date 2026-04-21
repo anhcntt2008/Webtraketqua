@@ -70,7 +70,9 @@ public class ResultsController : ControllerBase
             return NotFound(new { message = "Không tìm thấy file" });
 
         var file = result.Files.FirstOrDefault(f => f.Id == fileId);
-        var fileName = file?.Name.ToString().Replace() ?? $"file_{fileId}.pdf";
+        var fileName = !string.IsNullOrWhiteSpace(file?.Name) ? file!.Name : $"file_{fileId}.pdf";
+        if (!fileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            fileName += ".pdf";
 
         // Xử lý prefix nếu có (vd: "data:application/pdf;base64,...")
         var commaIndex = base64Content.IndexOf(',');
