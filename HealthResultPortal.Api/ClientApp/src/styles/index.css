@@ -1,0 +1,57 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Lexend', sans-serif;
+  background: #f0f4f8;
+  color: #2c3e50;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #e8eef4;
+}
+::-webkit-scrollbar-thumb {
+  background: #b8cce0;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8baac4;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.06; }
+  50% { transform: translateY(-40px) scale(1.1); opacity: 0.12; }
+}
+
+/* Login split-screen responsive */
+@media (max-width: 768px) {
+  .login-left-panel {
+    display: none !important;
+  }
+  .login-right-panel {
+    min-width: 100% !important;
+    flex: 1 !important;
+  }
+}
+
+/* Smooth input focus */
+input:focus {
+  border-color: #0072BC !important;
+  box-shadow: 0 0 0 3px rgba(0,114,188,0.1) !important;
+}
+
+/* Button hover */
+button:hover {
+  filter: brightness(1.05);
+}

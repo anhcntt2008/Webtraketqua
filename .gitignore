@@ -1,0 +1,16 @@
+## .NET
+bin/
+obj/
+publish/
+*.user
+*.suo
+.vs/
+
+## React
+ClientApp/node_modules/
+ClientApp/build/
+ClientApp/.env.local
+
+## IDE
+.idea/
+*.swp
