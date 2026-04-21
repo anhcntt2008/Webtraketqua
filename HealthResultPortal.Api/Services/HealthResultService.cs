@@ -392,7 +392,7 @@ public class HealthResultService : IHealthResultService
         return result;
     }
 
-    public string  GetFileContent(string maLuotKham, int fileId)
+    public string GetFileContent(string maLuotKham, int fileId)
     {
         var result = GetByMaLuotKham(maLuotKham);
         var file = result?.Files.FirstOrDefault(f => f.Id == fileId);
@@ -401,29 +401,22 @@ public class HealthResultService : IHealthResultService
         var path = file.DaKy && !string.IsNullOrEmpty(file.DuongDanDaKy)
             ? file.DuongDanDaKy
             : file.DuongDan;
-        FileData fileData = new FileData();
         if (string.IsNullOrEmpty(path)) return null;
-        string fileketqua =  GetFileFromApi(path, path, file.MaPhieu);
-        if (!string.IsNullOrEmpty(fileketqua))
-        {
-            ResponseFile responseFile = JsonConvert.DeserializeObject<ResponseFile>(fileketqua); 
-            if(responseFile != null)
-            {
-                FileDetail fileDetail = JsonConvert.DeserializeObject<FileDetail>(responseFile.data.ToString()); 
-                if(fileDetail != null)
-                {
-                    return Convert.ToBase64String(fileDetail.fileByte, Base64FormattingOptions.None);
-                }    
-            } 
-        } 
-        //if (File.Exists(path))
-        //{
-           
-        //}
-        return string.Format($"[File not found: {path}]");
-        //return File.ReadAllBytes(path);
 
+        var fileketqua = GetFileFromApi(path, path, file.MaPhieu);
+        if (string.IsNullOrEmpty(fileketqua)) return null;
 
+        var responseFile = JsonConvert.DeserializeObject<ResponseFile>(fileketqua);
+        if (responseFile?.data == null || !responseFile.IsSuccess) return null;
+
+        // responseFile.data deserialises to JObject under Newtonsoft; convert
+        // via ToObject rather than going through ToString() + re-parse.
+        var dataJson = responseFile.data as Newtonsoft.Json.Linq.JObject
+                       ?? Newtonsoft.Json.Linq.JObject.FromObject(responseFile.data);
+        var fileDetail = dataJson.ToObject<FileDetail>();
+        if (fileDetail?.fileByte == null || fileDetail.fileByte.Length == 0) return null;
+
+        return Convert.ToBase64String(fileDetail.fileByte, Base64FormattingOptions.None);
     }
     private string  GetFileFromApi(string filePath, string? fileName, string? fileGroup)
     {

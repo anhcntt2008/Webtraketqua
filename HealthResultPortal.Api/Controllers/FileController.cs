@@ -1,94 +1,83 @@
 ﻿using HealthResultPortal.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 
 namespace HealthResultPortal.Api.Controllers
 {
-
     [ApiController]
     [Route("api/[controller]")]
-
+    [Authorize]
     public class FileController : ControllerBase
-    { 
+    {
+        private readonly AppSettings _appSettings;
 
-        public IConfiguration Configuration { get; set; }
-        public AppSettings _appSettings; 
-        public FileController(IConfiguration configuration, IWebHostEnvironment env, IOptions<AppSettings> appIdentitySettingsAccessor)
+        public FileController(IOptions<AppSettings> appIdentitySettingsAccessor)
         {
-            Configuration = configuration;
             _appSettings = appIdentitySettingsAccessor.Value;
         }
-
 
         /// <summary>
         ///  Hàm thực hiện lấy File trên server
         /// </summary>
-        /// <param name="Filepath"></param>
-        /// <returns></returns>
         [HttpPost("GetFileResult")]
-        public async Task<ActionResult<string>> GetFileResult([FromBody] FileData objFile)
+        public ActionResult<ResponseFile> GetFileResult([FromBody] FileData objFile)
         {
-            ResponseFile responseFile = new ResponseFile();
+            if (objFile == null || string.IsNullOrWhiteSpace(objFile.FilePath))
+                return BadRequest(new ResponseFile { IsSuccess = false, Messge = "FilePath is required" });
+
+            var baseDir = objFile.FileGroup switch
+            {
+                "XN" => _appSettings.Path_XN,
+                "CDHA" => _appSettings.Path_CDHA,
+                _ => _appSettings.Path_FILE,
+            };
+            if (string.IsNullOrEmpty(baseDir))
+                return NotFound(new ResponseFile { IsSuccess = false, Messge = "File root not configured" });
+
+            // Resolve & validate path stays inside the configured base dir.
+            if (!TryResolveInside(baseDir, objFile.FilePath, out var fullPath))
+                return BadRequest(new ResponseFile { IsSuccess = false, Messge = "Invalid file path" });
+
+            if (!System.IO.File.Exists(fullPath))
+            {
+                // Fallback: try the unsigned variant.
+                var unsignedRel = objFile.FilePath.Replace("_signed", "");
+                if (!TryResolveInside(baseDir, unsignedRel, out fullPath) || !System.IO.File.Exists(fullPath))
+                    return NotFound(new ResponseFile { IsSuccess = false, Messge = "Không tồn tại File Results" });
+            }
+
             try
             {
-                string FileGroup = "";
-                FileGroup = objFile.FileGroup;
-                string path = "";
-                switch (FileGroup)
+                var bytes = System.IO.File.ReadAllBytes(fullPath);
+                return Ok(new ResponseFile
                 {
-                    case "XN":
-                        path = _appSettings.Path_XN;
-                        break;
-                    case "CDHA":
-                        path = _appSettings.Path_CDHA;
-                        break;
-                    case "FILE":
-                        path = _appSettings.Path_FILE;
-                        break;
-                    default:
-                        path =  _appSettings.Path_FILE;
-                        break;
-                }
-                byte[] _byte = null;
-                FileDetail audio = new FileDetail();
-
-                if (!System.IO.File.Exists(path + objFile.FilePath))
-                {
-                    responseFile.IsSuccess = false;
-                    responseFile.Messge = "Không tồn tại File Results";
-                    objFile.FilePath = objFile.FilePath.Replace("_signed", "");
-                    if (!System.IO.File.Exists(path + objFile.FilePath))
-                    {
-                        responseFile.IsSuccess = false;
-                        responseFile.Messge = "Không tồn tại File Results";
-                    }
-                    else
-                    {
-                        _byte = System.IO.File.ReadAllBytes(path + objFile.FilePath);
-                        responseFile.IsSuccess = true;
-                        responseFile.Messge = "";
-                    }
-
-                }
-                else
-                {
-                    _byte = System.IO.File.ReadAllBytes(path + objFile.FilePath);
-                    responseFile.IsSuccess = true;
-                    responseFile.Messge = "";
-                }
-                audio.fileName = path + objFile.FilePath;
-                audio.fileByte = _byte;
-                string aaa = Convert.ToBase64String(_byte, Base64FormattingOptions.None);
-                responseFile.data = audio;
+                    IsSuccess = true,
+                    Messge = "",
+                    data = new FileDetail { fileByte = bytes, fileName = fullPath },
+                });
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                responseFile.IsSuccess = false;
-                responseFile.Messge = exception.Message;
-                responseFile.data = new FileDetail();
+                return StatusCode(500, new ResponseFile { IsSuccess = false, Messge = ex.Message });
             }
-            return new JsonResult(responseFile);
+        }
+
+        private static bool TryResolveInside(string baseDir, string relative, out string resolved)
+        {
+            resolved = "";
+            try
+            {
+                var root = Path.GetFullPath(baseDir);
+                var candidate = Path.GetFullPath(Path.Combine(root, relative.TrimStart('/', '\\')));
+                if (!candidate.StartsWith(root, StringComparison.OrdinalIgnoreCase)) return false;
+                resolved = candidate;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }
