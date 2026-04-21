@@ -68,7 +68,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", p =>
+        p.RequireAuthenticatedUser()
+         .RequireClaim("is_admin", "true"));
+});
 
 // CORS for React dev server + production
 builder.Services.AddCors(options =>
@@ -91,6 +96,7 @@ builder.Services.AddCors(options =>
 // DI — Scoped vì mỗi request cần connection riêng
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IHealthResultService, HealthResultService>();
+builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 
 var app = builder.Build();
 

@@ -65,6 +65,30 @@ export const AuthService = {
   },
 
   isLoggedIn: () => !!sessionStorage.getItem('token'),
+
+  isAdmin: () => {
+    const raw = sessionStorage.getItem('user');
+    if (!raw) return false;
+    try { return !!JSON.parse(raw).isAdmin; } catch { return false; }
+  },
+
+  changePassword: async (oldPassword, newPassword) => {
+    const { data } = await api.post('/auth/change-password', { OldPassword: oldPassword, NewPassword: newPassword });
+    return data;
+  },
+};
+
+// ========== ADMIN / USERS ==========
+export const UserAdminService = {
+  list: async (search = '', page = 1, pageSize = 20) => {
+    const { data } = await api.get('/users', { params: { search, page, pageSize } });
+    return data;
+  },
+
+  resetPassword: async (dienThoai, newPassword) => {
+    const { data } = await api.post('/users/reset-password', { DienThoai: dienThoai, NewPassword: newPassword });
+    return data;
+  },
 };
 
 // ========== VISITS (danh sách lượt khám) ==========
