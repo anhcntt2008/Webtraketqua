@@ -55,7 +55,7 @@ public class ResultsController : ControllerBase
     /// Download file kết quả (đơn thuốc, bảng kê, file khác)
     /// </summary>
     [HttpGet("{maLuotKham}/files/{fileId}")]
-    public IActionResult DownloadFile(string maLuotKham, int fileId)
+    public async Task<IActionResult> DownloadFile(string maLuotKham, int fileId, CancellationToken ct)
     {
         var result = _resultService.GetByMaLuotKham(maLuotKham);
         if (result == null)
@@ -65,12 +65,14 @@ public class ResultsController : ControllerBase
         if (!string.Equals(claimId, result.Patient.IdBenhNhan.ToString()))
             return Forbid();
 
-        var base64Content = _resultService.GetFileContent(maLuotKham, fileId);
+        var base64Content = await _resultService.GetFileContentAsync(maLuotKham, fileId, ct);
         if (string.IsNullOrEmpty(base64Content))
             return NotFound(new { message = "Không tìm thấy file" });
 
         var file = result.Files.FirstOrDefault(f => f.Id == fileId);
-        var fileName = file?.Name.ToString().Replace() ?? $"file_{fileId}.pdf";
+        var fileName = !string.IsNullOrWhiteSpace(file?.Name) ? file!.Name : $"file_{fileId}.pdf";
+        if (!fileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            fileName += ".pdf";
 
         // Xử lý prefix nếu có (vd: "data:application/pdf;base64,...")
         var commaIndex = base64Content.IndexOf(',');

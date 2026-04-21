@@ -43,9 +43,12 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
+builder.Services.AddHttpClient("FileApi", c => c.Timeout = TimeSpan.FromSeconds(60));
 
-// JWT Authentication
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "HealthResultPortal_SuperSecretKey_2026!@#$%";
+// JWT Authentication — secret must be provided via env var / user-secrets / Development overrides.
+var jwtSecret = builder.Configuration["Jwt:Secret"];
+if (string.IsNullOrWhiteSpace(jwtSecret))
+    throw new InvalidOperationException("Jwt:Secret is not configured. Set it via environment variable Jwt__Secret or appsettings.Development.json.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "HealthResultPortal";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "HealthResultPortalClient";
 

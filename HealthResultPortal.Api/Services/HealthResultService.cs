@@ -12,18 +12,20 @@ public interface IHealthResultService
 {
     List<VisitDto> GetVisitsByBenhNhan(long idBenhNhan);
     HealthResult? GetByMaLuotKham(string maLuotKham);
-    string  GetFileContent(string maLuotKham, int fileId);
+    Task<string?> GetFileContentAsync(string maLuotKham, int fileId, CancellationToken ct = default);
 }
 
 public class HealthResultService : IHealthResultService
 {
-    private readonly string _connStr; 
+    private readonly string _connStr;
     private readonly AppSettings _appSettings;
-    public HealthResultService(IConfiguration config, IOptions<AppSettings> appIdentitySettingsAccessor)
+    private readonly IHttpClientFactory _httpClientFactory;
+    public HealthResultService(IConfiguration config, IOptions<AppSettings> appIdentitySettingsAccessor, IHttpClientFactory httpClientFactory)
     {
         _connStr = config.GetConnectionString("HISConnection")
             ?? throw new InvalidOperationException("Missing ConnectionStrings:HISConnection");
         _appSettings = appIdentitySettingsAccessor.Value;
+        _httpClientFactory = httpClientFactory;
 
         Console.WriteLine($"[DEBUG] _appSettings null? {_appSettings == null}");
         Console.WriteLine($"[DEBUG] Path_XN: '{_appSettings?.Path_XN}'");
@@ -392,7 +394,7 @@ public class HealthResultService : IHealthResultService
         return result;
     }
 
-    public string  GetFileContent(string maLuotKham, int fileId)
+    public async Task<string?> GetFileContentAsync(string maLuotKham, int fileId, CancellationToken ct = default)
     {
         var result = GetByMaLuotKham(maLuotKham);
         var file = result?.Files.FirstOrDefault(f => f.Id == fileId);
@@ -401,73 +403,53 @@ public class HealthResultService : IHealthResultService
         var path = file.DaKy && !string.IsNullOrEmpty(file.DuongDanDaKy)
             ? file.DuongDanDaKy
             : file.DuongDan;
-        FileData fileData = new FileData();
         if (string.IsNullOrEmpty(path)) return null;
-        string fileketqua =  GetFileFromApi(path, path, file.MaPhieu);
-        if (!string.IsNullOrEmpty(fileketqua))
-        {
-            ResponseFile responseFile = JsonConvert.DeserializeObject<ResponseFile>(fileketqua); 
-            if(responseFile != null)
-            {
-                FileDetail fileDetail = JsonConvert.DeserializeObject<FileDetail>(responseFile.data.ToString()); 
-                if(fileDetail != null)
-                {
-                    return Convert.ToBase64String(fileDetail.fileByte, Base64FormattingOptions.None);
-                }    
-            } 
-        } 
-        //if (File.Exists(path))
-        //{
-           
-        //}
-        return string.Format($"[File not found: {path}]");
-        //return File.ReadAllBytes(path);
 
+        var fileketqua = await GetFileFromApiAsync(path, path, file.MaPhieu, ct);
+        if (string.IsNullOrEmpty(fileketqua)) return null;
 
+        var responseFile = JsonConvert.DeserializeObject<ResponseFile>(fileketqua);
+        if (responseFile?.data == null || !responseFile.IsSuccess) return null;
+
+        var dataJson = responseFile.data as Newtonsoft.Json.Linq.JObject
+                       ?? Newtonsoft.Json.Linq.JObject.FromObject(responseFile.data);
+        var fileDetail = dataJson.ToObject<FileDetail>();
+        if (fileDetail?.fileByte == null || fileDetail.fileByte.Length == 0) return null;
+
+        return Convert.ToBase64String(fileDetail.fileByte, Base64FormattingOptions.None);
     }
-    private string  GetFileFromApi(string filePath, string? fileName, string? fileGroup)
+
+    private async Task<string?> GetFileFromApiAsync(string filePath, string? fileName, string? fileGroup, CancellationToken ct)
     {
         try
         {
-            using var httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(30);
+            var client = _httpClientFactory.CreateClient("FileApi");
 
             var requestBody = new
             {
-                filePath = filePath,
+                filePath,
                 fileName = fileName ?? "",
                 fileGroup = fileGroup ?? "",
                 fileBase64 = ""
             };
 
             var json = System.Text.Json.JsonSerializer.Serialize(requestBody);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = httpClient.PostAsync(_appSettings.Link_File, content)
-                .GetAwaiter().GetResult();
+            using var response = await client.PostAsync(_appSettings.Link_File, content, ct);
+            if (!response.IsSuccessStatusCode) return null;
 
-            if (!response.IsSuccessStatusCode)
-                return null;
+            var body = await response.Content.ReadAsStringAsync(ct);
+            if (string.IsNullOrWhiteSpace(body)) return null;
 
-            // Đọc response dưới dạng STRING (base64)
-            var base64String = response.Content.ReadAsStringAsync()
-                .GetAwaiter().GetResult();
+            body = body.Trim().Trim('"');
+            var commaIndex = body.IndexOf(',');
+            if (body.StartsWith("data:") && commaIndex > 0)
+                body = body.Substring(commaIndex + 1);
 
-            if (string.IsNullOrWhiteSpace(base64String))
-                return null;
-
-            // Nếu API trả về JSON string có dấu nháy kép, cần trim
-            base64String = base64String.Trim().Trim('"');
-
-            // Nếu có prefix "data:application/pdf;base64," thì bỏ đi
-            var commaIndex = base64String.IndexOf(',');
-            if (base64String.StartsWith("data:") && commaIndex > 0)
-                base64String = base64String.Substring(commaIndex + 1);
-            
-            // Convert base64 → byte[] PDF thật
-            return base64String;
+            return body;
         }
-        catch (Exception ex)
+        catch
         {
             return null;
         }

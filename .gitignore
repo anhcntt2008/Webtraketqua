@@ -6,6 +6,12 @@ publish/
 *.suo
 .vs/
 
+## Secrets / local overrides (never commit real connection strings)
+appsettings.Development.json
+appsettings.Local.json
+appsettings.Production.json
+secrets.json
+
 ## React
 ClientApp/node_modules/
 ClientApp/build/
