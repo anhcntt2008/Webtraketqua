@@ -5,19 +5,39 @@ import { ResultService } from '../services/api';
 
 export default function TabFiles({ result }) {
   const [downloading, setDownloading] = useState(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  const downloadOne = async (file) => {
+    await ResultService.downloadFile(result.patient.pid, file.id, file.name);
+  };
 
   const handleDownload = async (file) => {
     setDownloading(file.id);
     try {
-      await ResultService.downloadFile(result.patient.pid, file.id, file.name);
+      await downloadOne(file);
     } catch (err) {
-      console.error('Download failed:', err); 
-  console.error('Error response:', err.response);
-  console.error('Error status:', err.response?.status);
-  console.error('Error data:', err.response?.data);
+      console.error('Download failed:', err);
       alert('Không thể tải file. Vui lòng thử lại.');
     } finally {
       setDownloading(null);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    if (downloadingAll) return;
+    setDownloadingAll(true);
+    try {
+      for (const f of result.files) {
+        setDownloading(f.id);
+        try {
+          await downloadOne(f);
+        } catch (err) {
+          console.error('Download failed for', f.name, err);
+        }
+      }
+    } finally {
+      setDownloading(null);
+      setDownloadingAll(false);
     }
   };
 
@@ -69,12 +89,14 @@ export default function TabFiles({ result }) {
 
       {/* Download all */}
       <button
-        onClick={() => result.files.forEach(f => handleDownload(f))}
+        onClick={handleDownloadAll}
+        disabled={downloadingAll}
         style={{
           marginTop: 8, padding: '14px 0', borderRadius: 12,
           background: P.primaryLight,
           border: '1px dashed ' + P.primary + '50',
-          color: P.primary, cursor: 'pointer',
+          color: P.primary,
+          cursor: downloadingAll ? 'wait' : 'pointer',
           fontFamily: font, fontSize: 14, fontWeight: 600,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           transition: 'border-color .2s',
@@ -87,7 +109,7 @@ export default function TabFiles({ result }) {
           <polyline points="7 10 12 15 17 10" />
           <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
-        Tải tất cả ({result.files.length} file)
+        {downloadingAll ? 'Đang tải...' : `Tải tất cả (${result.files.length} file)`}
       </button>
     </div>
   );
