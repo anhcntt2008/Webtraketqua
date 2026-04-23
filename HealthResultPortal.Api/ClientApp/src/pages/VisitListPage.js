@@ -3,7 +3,7 @@ import { P, font, mono } from '../styles/theme';
 import { Spinner, Card } from '../components/Shared';
 import { VisitService } from '../services/api';
 
-export default function VisitListPage({ user, onLogout, onSelectVisit }) {
+export default function VisitListPage({ user, onLogout, onSelectVisit, onChangePassword, onOpenAdmin }) {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -78,6 +78,38 @@ export default function VisitListPage({ user, onLogout, onSelectVisit }) {
             <div style={{ fontSize: 13, color: P.headerText }}>{user.tenBenhNhan}</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{user.dienThoai}</div>
           </div>
+          {user.isAdmin && (
+            <button onClick={onOpenAdmin} title="Quản trị người dùng" style={{
+              width: 36, height: 36, borderRadius: 8,
+              background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
+              color: P.headerText, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </button>
+          )}
+          <button onClick={onChangePassword} title="Đổi mật khẩu" style={{
+            width: 36, height: 36, borderRadius: 8,
+            background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
+            color: P.headerText, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </button>
           <button onClick={onLogout} title="Đăng xuất" style={{
             width: 36, height: 36, borderRadius: 8,
             background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',

@@ -65,6 +65,30 @@ export const AuthService = {
   },
 
   isLoggedIn: () => !!sessionStorage.getItem('token'),
+
+  isAdmin: () => {
+    const raw = sessionStorage.getItem('user');
+    if (!raw) return false;
+    try { return !!JSON.parse(raw).isAdmin; } catch { return false; }
+  },
+
+  changePassword: async (oldPassword, newPassword) => {
+    const { data } = await api.post('/auth/change-password', { OldPassword: oldPassword, NewPassword: newPassword });
+    return data;
+  },
+};
+
+// ========== ADMIN / USERS ==========
+export const UserAdminService = {
+  list: async (search = '', page = 1, pageSize = 20) => {
+    const { data } = await api.get('/users', { params: { search, page, pageSize } });
+    return data;
+  },
+
+  resetPassword: async (dienThoai, newPassword) => {
+    const { data } = await api.post('/users/reset-password', { DienThoai: dienThoai, NewPassword: newPassword });
+    return data;
+  },
 };
 
 // ========== VISITS (danh sách lượt khám) ==========
@@ -86,15 +110,26 @@ export const ResultService = {
     const response = await api.get(`/results/${maLuotKham}/files/${fileId}`, {
       responseType: 'blob',
     });
-     
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
     const link = document.createElement('a');
-    link.href = url; 
+    link.href = url;
     link.setAttribute('download', fileName);
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
+  },
+
+  /**
+   * Fetch a file as a blob URL for in-browser viewing. Caller MUST call
+   * URL.revokeObjectURL(url) when the viewer is closed.
+   */
+  fetchFileUrl: async (maLuotKham, fileId) => {
+    const response = await api.get(`/results/${maLuotKham}/files/${fileId}`, {
+      responseType: 'blob',
+    });
+    return window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
   },
 };
 

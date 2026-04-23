@@ -1,0 +1,23 @@
+{
+  "__README__": "Copy this file to appsettings.Development.json (which is gitignored) and fill in the values. Required for local runs in Development environment.",
+
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AppSettings": {
+    "Path_XN": "",
+    "Path_CDHA": "",
+    "Path_FILE": "",
+    "Link_File": "http://<file-api-host>:<port>/api/File/GetFileResult",
+    "Admins": [ "0900000000" ]
+  },
+  "ConnectionStrings": {
+    "HISConnection": "Server=<host>;Database=<db>;User Id=<user>;Password=<pwd>;TrustServerCertificate=true;MultipleActiveResultSets=true"
+  },
+  "Jwt": {
+    "Secret": "<replace-with-a-long-random-string>"
+  }
+}

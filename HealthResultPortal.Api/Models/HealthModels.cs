@@ -3,7 +3,13 @@ namespace HealthResultPortal.Api.Models;
 // ========== AUTH ==========
 public record LoginRequest(string DienThoai, string MatKhau);
 public record LoginResponse(string Token, UserInfo User);
-public record UserInfo(string DienThoai, string TenBenhNhan, string MaLuotKham, long IdBenhNhan);
+public record UserInfo(string DienThoai, string TenBenhNhan, string MaLuotKham, long IdBenhNhan, bool IsAdmin);
+
+public record ChangePasswordRequest(string OldPassword, string NewPassword);
+public record AdminResetPasswordRequest(string DienThoai, string NewPassword);
+
+public record UserSummary(string DienThoai, string TenBenhNhan, long IdBenhNhan, bool IsAdmin);
+public record PagedUsers(List<UserSummary> Items, int Total);
 
 // ========== PATIENT (Table 1) ==========
 public class PatientInfo
@@ -293,9 +299,9 @@ public class FileDetail
 }
 public class AppSettings
 {
-    public string Path_XN { get; set; }
-    public string Path_CDHA { get; set; }
-    public string Path_FILE { get; set; }
-    public string Link_File { get; set; }
-
+    public string Path_XN { get; set; } = "";
+    public string Path_CDHA { get; set; } = "";
+    public string Path_FILE { get; set; } = "";
+    public string Link_File { get; set; } = "";
+    public List<string> Admins { get; set; } = new();
 }
