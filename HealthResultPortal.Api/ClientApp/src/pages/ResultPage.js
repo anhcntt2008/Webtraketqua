@@ -7,6 +7,8 @@ import TabLabResults from '../components/TabLabResults';
 import TabPrescription from '../components/TabPrescription';
 import TabFiles from '../components/TabFiles';
 import TabImaging from '../components/TabImaging';
+// eslint-disable-next-line no-unused-vars
+import TabImagingMockup from '../components/TabImagingMockup';
 
 const TABS = [
   { key: 'info', label: '🩺 Thông tin khám' },
@@ -177,7 +179,11 @@ export default function ResultPage({ user, maLuotKham, onLogout, onBack }) {
         {/* Tab content */}
         {activeTab === 'info' && <TabExamInfo result={result} />}
         {activeTab === 'lab' && <TabLabResults result={result} />}
-        {activeTab === 'imaging' && <TabImaging result={result} />}
+        {activeTab === 'imaging' && (
+          window.location.search.includes('mockup=cdha')
+            ? <TabImagingMockup result={result} />
+            : <TabImaging result={result} />
+        )}
         {activeTab === 'rx' && <TabPrescription result={result} />}
         {activeTab === 'files' && <TabFiles result={result} />}
       </div>
