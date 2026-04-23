@@ -56,33 +56,11 @@ export default function PdfViewerModal({ maLuotKham, file, onClose }) {
         display: 'flex', flexDirection: 'column',
       }}
     >
-      {/* Always-visible floating close button — covers the case where the
-          iframe's own PDF toolbar overlaps the modal header. */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onClose(); }}
-        title="Đóng (Esc)"
-        style={{
-          position: 'fixed', top: 10, right: 10, zIndex: 10000,
-          width: 40, height: 40, borderRadius: '50%',
-          background: P.danger, color: P.white,
-          border: '2px solid rgba(255,255,255,0.9)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-          cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18, fontWeight: 700,
-        }}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
-
       <div
         onClick={e => e.stopPropagation()}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 60px 10px 16px', background: P.headerBg, color: P.headerText,
+          padding: '10px 16px', background: P.headerBg, color: P.headerText,
           fontFamily: font, fontSize: 14, fontWeight: 600,
         }}
       >
