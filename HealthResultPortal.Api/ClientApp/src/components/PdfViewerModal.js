@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { P, font } from '../styles/theme';
 import { Spinner } from './Shared';
 import { ResultService } from '../services/api';
@@ -47,11 +48,11 @@ export default function PdfViewerModal({ maLuotKham, file, onClose }) {
     link.remove();
   };
 
-  return (
+  return createPortal((
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100,
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999,
         display: 'flex', flexDirection: 'column',
       }}
     >
@@ -61,7 +62,7 @@ export default function PdfViewerModal({ maLuotKham, file, onClose }) {
         onClick={(e) => { e.stopPropagation(); onClose(); }}
         title="Đóng (Esc)"
         style={{
-          position: 'fixed', top: 10, right: 10, zIndex: 110,
+          position: 'fixed', top: 10, right: 10, zIndex: 10000,
           width: 40, height: 40, borderRadius: '50%',
           background: P.danger, color: P.white,
           border: '2px solid rgba(255,255,255,0.9)',
@@ -143,7 +144,7 @@ export default function PdfViewerModal({ maLuotKham, file, onClose }) {
         )}
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 const iconBtn = {
