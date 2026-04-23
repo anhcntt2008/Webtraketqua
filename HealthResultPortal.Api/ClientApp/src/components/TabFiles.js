@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { P, font } from '../styles/theme';
 import { Card, FileIcon, Spinner } from '../components/Shared';
 import { ResultService } from '../services/api';
+import PdfViewerModal from './PdfViewerModal';
 
 export default function TabFiles({ result }) {
   const [downloading, setDownloading] = useState(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [viewing, setViewing] = useState(null);
 
   const downloadOne = async (file) => {
     await ResultService.downloadFile(result.patient.pid, file.id, file.name);
@@ -58,32 +60,53 @@ export default function TabFiles({ result }) {
               <div style={{ fontSize: 12, color: P.textMuted, marginTop: 2 }}>{f.size} • {f.type.toUpperCase()}</div>
             </div>
           </div>
-          <button
-            onClick={() => handleDownload(f)}
-            disabled={downloading === f.id}
-            style={{
-              padding: '8px 18px', borderRadius: 8,
-              background: downloading === f.id ? P.primaryDark : P.primaryLight,
-              border: '1px solid ' + P.primary + '30',
-              color: downloading === f.id ? P.white : P.primary,
-              cursor: downloading === f.id ? 'wait' : 'pointer',
-              fontFamily: font, fontSize: 13, fontWeight: 600,
-              display: 'flex', alignItems: 'center', gap: 6,
-              transition: 'background .2s',
-            }}
-            onMouseEnter={e => { if (downloading !== f.id) e.currentTarget.style.background = P.primary + '25'; }}
-            onMouseLeave={e => { if (downloading !== f.id) e.currentTarget.style.background = P.primaryLight; }}
-          >
-            {downloading === f.id
-              ? <Spinner size={14} color={P.white} />
-              : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-            }
-            {downloading === f.id ? 'Đang tải...' : 'Tải xuống'}
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setViewing(f)}
+              style={{
+                padding: '8px 14px', borderRadius: 8,
+                background: P.white, border: '1px solid ' + P.primary + '50',
+                color: P.primary, cursor: 'pointer',
+                fontFamily: font, fontSize: 13, fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 6,
+                transition: 'background .2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = P.primaryLight}
+              onMouseLeave={e => e.currentTarget.style.background = P.white}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              Xem
+            </button>
+            <button
+              onClick={() => handleDownload(f)}
+              disabled={downloading === f.id}
+              style={{
+                padding: '8px 14px', borderRadius: 8,
+                background: downloading === f.id ? P.primaryDark : P.primaryLight,
+                border: '1px solid ' + P.primary + '30',
+                color: downloading === f.id ? P.white : P.primary,
+                cursor: downloading === f.id ? 'wait' : 'pointer',
+                fontFamily: font, fontSize: 13, fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 6,
+                transition: 'background .2s',
+              }}
+              onMouseEnter={e => { if (downloading !== f.id) e.currentTarget.style.background = P.primary + '25'; }}
+              onMouseLeave={e => { if (downloading !== f.id) e.currentTarget.style.background = P.primaryLight; }}
+            >
+              {downloading === f.id
+                ? <Spinner size={14} color={P.white} />
+                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+              }
+              {downloading === f.id ? 'Đang tải...' : 'Tải xuống'}
+            </button>
+          </div>
         </Card>
       ))}
 
@@ -111,6 +134,14 @@ export default function TabFiles({ result }) {
         </svg>
         {downloadingAll ? 'Đang tải...' : `Tải tất cả (${result.files.length} file)`}
       </button>
+
+      {viewing && (
+        <PdfViewerModal
+          maLuotKham={result.patient.pid}
+          file={viewing}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </div>
   );
 }

@@ -110,15 +110,26 @@ export const ResultService = {
     const response = await api.get(`/results/${maLuotKham}/files/${fileId}`, {
       responseType: 'blob',
     });
-     
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
     const link = document.createElement('a');
-    link.href = url; 
+    link.href = url;
     link.setAttribute('download', fileName);
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
+  },
+
+  /**
+   * Fetch a file as a blob URL for in-browser viewing. Caller MUST call
+   * URL.revokeObjectURL(url) when the viewer is closed.
+   */
+  fetchFileUrl: async (maLuotKham, fileId) => {
+    const response = await api.get(`/results/${maLuotKham}/files/${fileId}`, {
+      responseType: 'blob',
+    });
+    return window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
   },
 };
 
