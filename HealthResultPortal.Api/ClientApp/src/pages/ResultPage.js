@@ -7,6 +7,8 @@ import TabLabResults from '../components/TabLabResults';
 import TabPrescription from '../components/TabPrescription';
 import TabFiles from '../components/TabFiles';
 import TabImaging from '../components/TabImaging';
+// eslint-disable-next-line no-unused-vars
+import TabImagingMockup from '../components/TabImagingMockup';
 
 const TABS = [
   { key: 'info', label: '🩺 Thông tin khám' },
@@ -177,10 +179,37 @@ export default function ResultPage({ user, maLuotKham, onLogout, onBack }) {
         {/* Tab content */}
         {activeTab === 'info' && <TabExamInfo result={result} />}
         {activeTab === 'lab' && <TabLabResults result={result} />}
-        {activeTab === 'imaging' && <TabImaging result={result} />}
+        {activeTab === 'imaging' && <ImagingTabWithToggle result={result} />}
         {activeTab === 'rx' && <TabPrescription result={result} />}
         {activeTab === 'files' && <TabFiles result={result} />}
       </div>
+    </div>
+  );
+}
+
+function ImagingTabWithToggle({ result }) {
+  const [showMockup, setShowMockup] = useState(
+    () => window.location.search.includes('mockup=cdha')
+  );
+  return (
+    <div>
+      <div style={{
+        display: 'flex', justifyContent: 'flex-end', marginBottom: 8,
+      }}>
+        <button
+          onClick={() => setShowMockup(v => !v)}
+          style={{
+            padding: '6px 12px', borderRadius: 8,
+            background: showMockup ? '#fff7e6' : P.white,
+            border: '1px solid ' + (showMockup ? '#ffd79d' : P.border),
+            color: showMockup ? '#8a5a00' : P.textDim,
+            cursor: 'pointer', fontFamily: font, fontSize: 12, fontWeight: 600,
+          }}
+        >
+          {showMockup ? '🧪 Đang xem mockup — bấm để xem bản thật' : '🧪 Xem mockup'}
+        </button>
+      </div>
+      {showMockup ? <TabImagingMockup result={result} /> : <TabImaging result={result} />}
     </div>
   );
 }
