@@ -86,13 +86,26 @@ public class LabCategory
 public class ImagingResult
 {
     public int Id { get; set; }
+    public long IdChitietChidinh { get; set; }
     public string Name { get; set; } = "";
     public string Result { get; set; } = "";
     public string ContentHtml { get; set; } = "";
     public string Doctor { get; set; } = "";
     public string Date { get; set; } = "";
-    public string UrlFile { get; set; } = "";
+}
+
+// Files của một dịch vụ CĐHA (kcb_hinhanh_file)
+public class ImagingFile
+{
+    public long Id { get; set; }
+    public long IdChitietChidinh { get; set; }
+    public string FileName { get; set; } = "";
+    public string FilePath { get; set; } = "";
+    public string FileType { get; set; } = "";
     public string LinkUrl { get; set; } = "";
+    public string NguoiTao { get; set; } = "";
+    public string NgayTao { get; set; } = "";
+    public string Kind { get; set; } = "other"; // pdf | image | video | link | other
 }
 
 // ========== PRESCRIPTION (Table 6) ==========
@@ -239,9 +252,6 @@ public class SpHinhAnhRow
     public string? ketquahrtf { get; set; }
     public string? ket_qua { get; set; }
     public string? de_nghi { get; set; }
-    public string? ten_file { get; set; }
-    public string? urlfile_result { get; set; }
-    public string? link_url { get; set; }
     public string? nguoitra_ketqua { get; set; }
     public string? ten_dichvu_parent { get; set; }
     public int? id { get; set; }
