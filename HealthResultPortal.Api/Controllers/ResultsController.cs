@@ -105,4 +105,57 @@ public class ResultsController : ControllerBase
 
         //return File(content, "application/pdf", fileName);
     }
+
+    /// <summary>
+    /// Danh sách file của một dịch vụ CĐHA (kcb_hinhanh_file theo id_chitietchidinh).
+    /// </summary>
+    [HttpGet("{maLuotKham}/imaging/{idChitietChidinh:long}/files")]
+    public IActionResult GetImagingFiles(string maLuotKham, long idChitietChidinh)
+    {
+        var result = _resultService.GetByMaLuotKham(maLuotKham);
+        if (result == null)
+            return NotFound(new { message = "Không tìm thấy kết quả" });
+
+        var claimId = User.FindFirst("id_benhnhan")?.Value;
+        if (!string.Equals(claimId, result.Patient.IdBenhNhan.ToString()))
+            return Forbid();
+
+        // Chỉ cho phép truy cập idChitietChidinh thuộc về lượt khám hiện tại
+        if (!result.ImagingResults.Any(r => r.IdChitietChidinh == idChitietChidinh))
+            return Forbid();
+
+        var files = _resultService.GetImagingFilesByChitiet(idChitietChidinh);
+        return Ok(files);
+    }
+
+    /// <summary>
+    /// Trả về nội dung file CĐHA (pdf / ảnh / video) inline.
+    /// </summary>
+    [HttpGet("{maLuotKham}/imaging/files/{idFile:long}")]
+    public async Task<IActionResult> GetImagingFileContent(string maLuotKham, long idFile, CancellationToken ct)
+    {
+        var result = _resultService.GetByMaLuotKham(maLuotKham);
+        if (result == null)
+            return NotFound(new { message = "Không tìm thấy kết quả" });
+
+        var claimId = User.FindFirst("id_benhnhan")?.Value;
+        if (!string.Equals(claimId, result.Patient.IdBenhNhan.ToString()))
+            return Forbid();
+
+        var file = _resultService.GetImagingFileById(idFile);
+        if (file == null)
+            return NotFound(new { message = "Không tìm thấy file" });
+
+        // File phải thuộc một dịch vụ CĐHA của chính lượt khám này
+        if (!result.ImagingResults.Any(r => r.IdChitietChidinh == file.IdChitietChidinh))
+            return Forbid();
+
+        var (bytes, contentType) = await _resultService.GetImagingFileContentAsync(file, ct);
+        if (bytes == null || bytes.Length == 0)
+            return NotFound(new { message = "Không đọc được nội dung file" });
+
+        var downloadName = !string.IsNullOrWhiteSpace(file.FileName) ? file.FileName : $"file_{idFile}";
+        Response.Headers["Content-Disposition"] = $"inline; filename=\"{Uri.EscapeDataString(downloadName)}\"";
+        return File(bytes, contentType);
+    }
 }

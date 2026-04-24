@@ -13,6 +13,11 @@ public interface IHealthResultService
     List<VisitDto> GetVisitsByBenhNhan(long idBenhNhan);
     HealthResult? GetByMaLuotKham(string maLuotKham);
     Task<string?> GetFileContentAsync(string maLuotKham, int fileId, CancellationToken ct = default);
+
+    // Imaging files (kcb_hinhanh_file)
+    List<ImagingFile> GetImagingFilesByChitiet(long idChitietChidinh);
+    ImagingFile? GetImagingFileById(long idFile);
+    Task<(byte[]? Bytes, string ContentType)> GetImagingFileContentAsync(ImagingFile file, CancellationToken ct = default);
 }
 
 public class HealthResultService : IHealthResultService
@@ -199,9 +204,6 @@ public class HealthResultService : IHealthResultService
                     ketquahrtf = GetStrNull(reader, "ketquahrtf"),
                     ket_qua = GetStrNull(reader, "ket_qua"),
                     de_nghi = GetStrNull(reader, "de_nghi"),
-                    ten_file = GetStrNull(reader, "ten_file"),
-                    urlfile_result = GetStrNull(reader, "urlfile_result"),
-                    link_url = GetStrNull(reader, "link_url"),
                     nguoitra_ketqua = GetStrNull(reader, "nguoitra_ketqua"),
                     id = GetIntNull(reader, "id"),
                 });
@@ -335,17 +337,16 @@ public class HealthResultService : IHealthResultService
                 }).ToList()
             }).ToList();
 
-        // --- Table 5 → Imaging results ---
+        // --- Table 5 → Imaging results (files lấy riêng qua API /imaging/{idChitietChidinh}/files) ---
         result.ImagingResults = haRows.Select((h, idx) => new ImagingResult
         {
             Id = h.id ?? (idx + 1),
-            Name = h.ten_file ?? h.ten_dichvu ?? "Kết quả CĐHA",
+            IdChitietChidinh = h.idChitietChidinh ?? 0,
+            Name = h.ten_dichvu ?? "Kết quả CĐHA",
             Result = h.ket_qua ?? "",
             ContentHtml = h.ketquahtml ?? "",
             Doctor = h.nguoitra_ketqua ?? "",
             Date = h.ngay_ketqua?.ToString("dd/MM/yyyy HH:mm") ?? "",
-            UrlFile = h.urlfile_result ?? "",
-            LinkUrl = h.link_url ?? "",
         }).ToList();
 
         // --- Table 6 → Prescriptions ---
@@ -454,6 +455,135 @@ public class HealthResultService : IHealthResultService
             return null;
         }
     }
+    // ========== Imaging files (kcb_hinhanh_file) ==========
+    public List<ImagingFile> GetImagingFilesByChitiet(long idChitietChidinh)
+    {
+        var files = new List<ImagingFile>();
+        using var conn = new SqlConnection(_connStr);
+        conn.Open();
+
+        using var cmd = new SqlCommand(
+            @"SELECT id_file, id_chitietchidinh, file_path, file_name, file_type,
+                     link_url, nguoi_tao, ngay_tao
+              FROM kcb_hinhanh_file
+              WHERE id_chitietchidinh = @id
+              ORDER BY id_file", conn);
+        cmd.Parameters.Add("@id", SqlDbType.BigInt).Value = idChitietChidinh;
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            files.Add(MapImagingFile(reader));
+        }
+        return files;
+    }
+
+    public ImagingFile? GetImagingFileById(long idFile)
+    {
+        using var conn = new SqlConnection(_connStr);
+        conn.Open();
+
+        using var cmd = new SqlCommand(
+            @"SELECT id_file, id_chitietchidinh, file_path, file_name, file_type,
+                     link_url, nguoi_tao, ngay_tao
+              FROM kcb_hinhanh_file
+              WHERE id_file = @id", conn);
+        cmd.Parameters.Add("@id", SqlDbType.BigInt).Value = idFile;
+
+        using var reader = cmd.ExecuteReader();
+        return reader.Read() ? MapImagingFile(reader) : null;
+    }
+
+    public async Task<(byte[]? Bytes, string ContentType)> GetImagingFileContentAsync(ImagingFile file, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(file.FilePath))
+            return (null, "application/octet-stream");
+
+        var contentType = ResolveContentType(file.FileName, file.FileType);
+
+        var response = await GetFileFromApiAsync(file.FilePath, file.FileName, "CDHA", ct);
+        if (string.IsNullOrEmpty(response)) return (null, contentType);
+
+        var responseFile = JsonConvert.DeserializeObject<ResponseFile>(response);
+        if (responseFile?.data == null || !responseFile.IsSuccess) return (null, contentType);
+
+        var dataJson = responseFile.data as Newtonsoft.Json.Linq.JObject
+                       ?? Newtonsoft.Json.Linq.JObject.FromObject(responseFile.data);
+        var fileDetail = dataJson.ToObject<FileDetail>();
+        if (fileDetail?.fileByte == null || fileDetail.fileByte.Length == 0)
+            return (null, contentType);
+
+        return (fileDetail.fileByte, contentType);
+    }
+
+    private static ImagingFile MapImagingFile(SqlDataReader reader)
+    {
+        var filePath = GetStrNull(reader, "file_path") ?? "";
+        var fileName = GetStrNull(reader, "file_name") ?? "";
+        var fileType = GetStrNull(reader, "file_type") ?? "";
+        var linkUrl = GetStrNull(reader, "link_url") ?? "";
+
+        return new ImagingFile
+        {
+            Id = GetLong(reader, "id_file"),
+            IdChitietChidinh = GetLong(reader, "id_chitietchidinh"),
+            FilePath = filePath,
+            FileName = !string.IsNullOrWhiteSpace(fileName) ? fileName : Path.GetFileName(filePath),
+            FileType = fileType,
+            LinkUrl = linkUrl,
+            NguoiTao = GetStrNull(reader, "nguoi_tao") ?? "",
+            NgayTao = GetDateNull(reader, "ngay_tao")?.ToString("dd/MM/yyyy HH:mm") ?? "",
+            Kind = ResolveKind(fileName, filePath, fileType, linkUrl),
+        };
+    }
+
+    private static string ResolveKind(string fileName, string filePath, string fileType, string linkUrl)
+    {
+        var ext = GetExt(fileName, filePath, fileType);
+        if (ext == "pdf") return "pdf";
+        if (ext is "jpg" or "jpeg" or "png" or "gif" or "bmp" or "webp") return "image";
+        if (ext is "mp4" or "webm" or "mov" or "avi" or "mkv" or "m4v") return "video";
+        if (!string.IsNullOrWhiteSpace(linkUrl)) return "link";
+        return "other";
+    }
+
+    private static string ResolveContentType(string fileName, string fileType)
+    {
+        var ext = GetExt(fileName, "", fileType);
+        return ext switch
+        {
+            "pdf" => "application/pdf",
+            "jpg" or "jpeg" => "image/jpeg",
+            "png" => "image/png",
+            "gif" => "image/gif",
+            "bmp" => "image/bmp",
+            "webp" => "image/webp",
+            "mp4" => "video/mp4",
+            "webm" => "video/webm",
+            "mov" => "video/quicktime",
+            "avi" => "video/x-msvideo",
+            "mkv" => "video/x-matroska",
+            "m4v" => "video/x-m4v",
+            _ => "application/octet-stream"
+        };
+    }
+
+    private static string GetExt(string fileName, string filePath, string fileType)
+    {
+        string Clean(string s) => (s ?? "").Trim().TrimStart('.').ToLowerInvariant();
+
+        var fromType = Clean(fileType);
+        if (!string.IsNullOrEmpty(fromType) && fromType.Length <= 5) return fromType;
+
+        var fromName = Path.GetExtension(fileName);
+        if (!string.IsNullOrEmpty(fromName)) return Clean(fromName);
+
+        var fromPath = Path.GetExtension(filePath);
+        if (!string.IsNullOrEmpty(fromPath)) return Clean(fromPath);
+
+        return "";
+    }
+
     // ========== Helpers ==========
     private static SpFileRow ReadFileRow(SqlDataReader reader) => new()
     {

@@ -177,7 +177,7 @@ export default function ResultPage({ user, maLuotKham, onLogout, onBack }) {
         {/* Tab content */}
         {activeTab === 'info' && <TabExamInfo result={result} />}
         {activeTab === 'lab' && <TabLabResults result={result} />}
-        {activeTab === 'imaging' && <TabImaging result={result} />}
+        {activeTab === 'imaging' && <TabImaging result={result} maLuotKham={maLuotKham} />}
         {activeTab === 'rx' && <TabPrescription result={result} />}
         {activeTab === 'files' && <TabFiles result={result} />}
       </div>

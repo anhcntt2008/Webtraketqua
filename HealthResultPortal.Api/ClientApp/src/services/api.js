@@ -131,6 +131,37 @@ export const ResultService = {
     });
     return window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
   },
+
+  // Danh sách file của một dịch vụ CĐHA theo idChitietChidinh
+  getImagingFiles: async (maLuotKham, idChitietChidinh) => {
+    const { data } = await api.get(`/results/${maLuotKham}/imaging/${idChitietChidinh}/files`);
+    return data;
+  },
+
+  // Lấy blob URL + contentType của file CĐHA (pdf/image/video)
+  fetchImagingFileUrl: async (maLuotKham, idFile) => {
+    const response = await api.get(`/results/${maLuotKham}/imaging/files/${idFile}`, {
+      responseType: 'blob',
+    });
+    const contentType = response.headers['content-type'] || 'application/octet-stream';
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: contentType }));
+    return { url, contentType };
+  },
+
+  downloadImagingFile: async (maLuotKham, idFile, fileName) => {
+    const response = await api.get(`/results/${maLuotKham}/imaging/files/${idFile}`, {
+      responseType: 'blob',
+    });
+    const contentType = response.headers['content-type'] || 'application/octet-stream';
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: contentType }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', fileName || `file_${idFile}`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };
 
 export default api;
