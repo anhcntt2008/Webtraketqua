@@ -33,26 +33,29 @@ public class UserAdminService : IUserAdminService
         using var conn = new SqlConnection(_connStr);
         conn.Open();
 
-        var where = "";
+        var searchFilter = "";
         if (!string.IsNullOrWhiteSpace(search))
-            where = "WHERE wx.dien_thoai LIKE @q OR kdb.ten_benhnhan LIKE @q";
+            searchFilter = "AND (wx.dien_thoai LIKE @q OR kdb.ten_benhnhan LIKE @q)";
 
         using var countCmd = new SqlCommand($@"
-            SELECT COUNT(*)
-            FROM web_xacthuc wx
-            INNER JOIN kcb_danhsach_benhnhan kdb ON kdb.id_benhnhan = wx.id_benhnhan 
-            
-            {where} and  wx.dien_thoai != ''
+            SELECT COUNT(*) FROM (
+                SELECT DISTINCT wx.dien_thoai
+                FROM web_xacthuc wx
+                INNER JOIN kcb_danhsach_benhnhan kdb ON kdb.id_benhnhan = wx.id_benhnhan
+                WHERE wx.dien_thoai IS NOT NULL AND wx.dien_thoai <> ''
+                {searchFilter}
+            ) t
         ", conn);
         if (!string.IsNullOrWhiteSpace(search))
             countCmd.Parameters.Add("@q", SqlDbType.NVarChar, 200).Value = $"%{search.Trim()}%";
         var total = Convert.ToInt32(countCmd.ExecuteScalar());
 
         using var listCmd = new SqlCommand($@"
-            SELECT distinct wx.dien_thoai, wx.id_benhnhan, kdb.ten_benhnhan, kdb.nam_sinh, kdb.gioi_tinh, wx.mat_khau
+            SELECT DISTINCT wx.dien_thoai, wx.id_benhnhan, kdb.ten_benhnhan, kdb.nam_sinh, kdb.gioi_tinh, wx.mat_khau
             FROM web_xacthuc wx
             INNER JOIN kcb_danhsach_benhnhan kdb ON kdb.id_benhnhan = wx.id_benhnhan
-            {where} and  wx.dien_thoai != ''
+            WHERE wx.dien_thoai IS NOT NULL AND wx.dien_thoai <> ''
+            {searchFilter}
             ORDER BY wx.dien_thoai
             OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY
         ", conn);
@@ -71,10 +74,10 @@ public class UserAdminService : IUserAdminService
                 reader.IsDBNull(1) ? 0 : reader.GetInt64(1),
                 phone,
                 reader.IsDBNull(2) ? "" : reader.GetString(2),
-                reader.IsDBNull(3) ? "" : reader[3].ToString(),
+                reader.IsDBNull(3) ? "" : reader[3].ToString() ?? "",
                 reader.IsDBNull(4) ? "" : reader.GetString(4),
                 reader.IsDBNull(5) ? "" : reader.GetString(5),
-                _adminPhones.Contains(phone?.Trim())
+                _adminPhones.Contains(phone?.Trim() ?? "")
             ));
         }
         return new PagedUsers(items, total);
