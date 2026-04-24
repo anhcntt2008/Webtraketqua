@@ -96,16 +96,20 @@ export default function AdminUsersPage({ onBack }) {
           <Card style={{ overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>
-                <tr style={{ background: P.primaryLight, color: P.primary, textAlign: 'left' }}>
+                <tr style={{ background: P.primaryLight, color: P.primary, textAlign: 'left' }}> 
+                     <th style={{ padding: '12px 14px' }}>ID BN</th>
                   <th style={{ padding: '12px 14px' }}>Số điện thoại</th>
-                  <th style={{ padding: '12px 14px' }}>Họ tên</th>
-                  <th style={{ padding: '12px 14px' }}>ID BN</th>
+                  <th style={{ padding: '12px 14px' }}>Họ tên</th> 
+                  <th style={{ padding: '12px 14px' }}>Năm sinh</th>
+                   <th style={{ padding: '12px 14px' }}>Giới tính</th> 
+                     {/* <th style={{ padding: '12px 14px' }}>Mật khẩu</th> */}
                   <th style={{ padding: '12px 14px', textAlign: 'right' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map(u => (
-                  <tr key={u.dienThoai} style={{ borderTop: '1px solid ' + P.border }}>
+                {items.map(u => ( 
+                  <tr key={u.dienThoai} style={{ borderTop: '1px solid ' + P.border }}> 
+                   <td style={{ padding: '12px 14px', fontFamily: mono, color: P.textDim }}>{u.idBenhNhan}</td>
                     <td style={{ padding: '12px 14px', fontFamily: mono }}>
                       {u.dienThoai}
                       {u.isAdmin && <span style={{
@@ -114,7 +118,9 @@ export default function AdminUsersPage({ onBack }) {
                       }}>ADMIN</span>}
                     </td>
                     <td style={{ padding: '12px 14px' }}>{u.tenBenhNhan}</td>
-                    <td style={{ padding: '12px 14px', fontFamily: mono, color: P.textDim }}>{u.idBenhNhan}</td>
+                       <td style={{ padding: '12px 14px' }}>{u.namSinh}</td> 
+                           <td style={{ padding: '12px 14px' }}>{u.gioiTinh}</td> 
+                            {/* <td style={{ padding: '12px 14px' }}>{u.matKhau}</td> */}
                     <td style={{ padding: '12px 14px', textAlign: 'right' }}>
                       <button onClick={() => setResetTarget(u)} style={{
                         padding: '6px 12px', borderRadius: 6,

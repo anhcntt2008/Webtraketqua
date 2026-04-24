@@ -8,7 +8,7 @@ public record UserInfo(string DienThoai, string TenBenhNhan, string MaLuotKham, 
 public record ChangePasswordRequest(string OldPassword, string NewPassword);
 public record AdminResetPasswordRequest(string DienThoai, string NewPassword);
 
-public record UserSummary(string DienThoai, string TenBenhNhan, long IdBenhNhan, bool IsAdmin);
+public record UserSummary(long IdBenhNhan, string DienThoai, string TenBenhNhan, string NamSinh, string GioiTinh, string MatKhau, bool IsAdmin);
 public record PagedUsers(List<UserSummary> Items, int Total);
 
 // ========== PATIENT (Table 1) ==========

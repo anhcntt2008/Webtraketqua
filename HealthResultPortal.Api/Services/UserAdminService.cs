@@ -40,18 +40,19 @@ public class UserAdminService : IUserAdminService
         using var countCmd = new SqlCommand($@"
             SELECT COUNT(*)
             FROM web_xacthuc wx
-            INNER JOIN kcb_danhsach_benhnhan kdb ON kdb.id_benhnhan = wx.id_benhnhan
-            {where}
+            INNER JOIN kcb_danhsach_benhnhan kdb ON kdb.id_benhnhan = wx.id_benhnhan 
+            
+            {where} and  wx.dien_thoai != ''
         ", conn);
         if (!string.IsNullOrWhiteSpace(search))
             countCmd.Parameters.Add("@q", SqlDbType.NVarChar, 200).Value = $"%{search.Trim()}%";
         var total = Convert.ToInt32(countCmd.ExecuteScalar());
 
         using var listCmd = new SqlCommand($@"
-            SELECT wx.dien_thoai, wx.id_benhnhan, kdb.ten_benhnhan
+            SELECT distinct wx.dien_thoai, wx.id_benhnhan, kdb.ten_benhnhan, kdb.nam_sinh, kdb.gioi_tinh, wx.mat_khau
             FROM web_xacthuc wx
             INNER JOIN kcb_danhsach_benhnhan kdb ON kdb.id_benhnhan = wx.id_benhnhan
-            {where}
+            {where} and  wx.dien_thoai != ''
             ORDER BY wx.dien_thoai
             OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY
         ", conn);
@@ -59,17 +60,21 @@ public class UserAdminService : IUserAdminService
             listCmd.Parameters.Add("@q", SqlDbType.NVarChar, 200).Value = $"%{search.Trim()}%";
         listCmd.Parameters.Add("@skip", SqlDbType.Int).Value = (page - 1) * pageSize;
         listCmd.Parameters.Add("@take", SqlDbType.Int).Value = pageSize;
-
         var items = new List<UserSummary>();
+
         using var reader = listCmd.ExecuteReader();
         while (reader.Read())
         {
-            var phone = reader.GetString(0);
+            var phone = reader.IsDBNull(0) ? "" : reader.GetString(0);
+
             items.Add(new UserSummary(
+                reader.IsDBNull(1) ? 0 : reader.GetInt64(1),
                 phone,
                 reader.IsDBNull(2) ? "" : reader.GetString(2),
-                reader.GetInt64(1),
-                _adminPhones.Contains(phone)
+                reader.IsDBNull(3) ? "" : reader[3].ToString(),
+                reader.IsDBNull(4) ? "" : reader.GetString(4),
+                reader.IsDBNull(5) ? "" : reader.GetString(5),
+                _adminPhones.Contains(phone?.Trim())
             ));
         }
         return new PagedUsers(items, total);
